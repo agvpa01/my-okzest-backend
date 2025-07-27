@@ -170,11 +170,42 @@ class FontManager {
   
   async ensureFontAvailable(fontFamily) {
     try {
-      return await this.registerFont(fontFamily);
+      // For now, use system fonts to ensure compatibility
+      // This provides immediate text rendering while font downloading happens in background
+      const systemFont = this.getSystemFont(fontFamily);
+      
+      // Attempt to register Google Font in background (non-blocking)
+      this.registerFont(fontFamily).catch(err => {
+        console.log(`Background font registration failed for ${fontFamily}:`, err.message);
+      });
+      
+      return systemFont;
     } catch (error) {
       console.error(`Error ensuring font availability for ${fontFamily}:`, error);
       return this.getFallbackFont(fontFamily);
     }
+  }
+  
+  getSystemFont(fontFamily) {
+    // Map to system fonts that are more likely to be available
+    const lowerFamily = fontFamily.toLowerCase();
+    
+    if (lowerFamily.includes('oswald')) return 'Impact';
+    if (lowerFamily.includes('montserrat')) return 'Arial';
+    if (lowerFamily.includes('roboto')) return 'Arial';
+    if (lowerFamily.includes('open sans')) return 'Arial';
+    if (lowerFamily.includes('lato')) return 'Arial';
+    if (lowerFamily.includes('poppins')) return 'Arial';
+    if (lowerFamily.includes('playfair')) return 'Times New Roman';
+    if (lowerFamily.includes('merriweather')) return 'Times New Roman';
+    if (lowerFamily.includes('lora')) return 'Times New Roman';
+    if (lowerFamily.includes('dancing script')) return 'Comic Sans MS';
+    if (lowerFamily.includes('pacifico')) return 'Comic Sans MS';
+    if (lowerFamily.includes('source code')) return 'Courier New';
+    if (lowerFamily.includes('fira code')) return 'Courier New';
+    if (lowerFamily.includes('mono')) return 'Courier New';
+    
+    return this.getFallbackFont(fontFamily);
   }
 }
 
