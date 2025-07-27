@@ -132,20 +132,23 @@ class FontManager {
       const regularFontPath = path.join(fontDir, `${googleFontName.replace(/\s+/g, '_')}-400.ttf`);
       const boldFontPath = path.join(fontDir, `${googleFontName.replace(/\s+/g, '_')}-700.ttf`);
       
+      // Use a simplified family name for registration
+      const simpleFamilyName = googleFontName.replace(/\s+/g, '');
+      
       // Register regular weight
       if (fs.existsSync(regularFontPath)) {
-        registerFont(regularFontPath, { family: googleFontName, weight: 'normal' });
-        console.log(`Registered font: ${googleFontName} (regular)`);
+        registerFont(regularFontPath, { family: simpleFamilyName });
+        console.log(`Registered font: ${simpleFamilyName} (regular)`);
       }
       
-      // Register bold weight
+      // Register bold weight if available
       if (fs.existsSync(boldFontPath)) {
-        registerFont(boldFontPath, { family: googleFontName, weight: 'bold' });
-        console.log(`Registered font: ${googleFontName} (bold)`);
+        registerFont(boldFontPath, { family: simpleFamilyName, weight: 'bold' });
+        console.log(`Registered font: ${simpleFamilyName} (bold)`);
       }
       
       this.registeredFonts.add(fontKey);
-      return googleFontName;
+      return simpleFamilyName;
     } catch (error) {
       console.error(`Error registering font ${fontFamily}:`, error);
       return this.getFallbackFont(fontFamily);
@@ -155,13 +158,13 @@ class FontManager {
   getFallbackFont(fontFamily) {
     // Return appropriate fallback fonts based on font family
     if (fontFamily.includes('serif')) {
-      return 'serif';
+      return 'Times New Roman, serif';
     } else if (fontFamily.includes('monospace')) {
-      return 'monospace';
+      return 'Courier New, monospace';
     } else if (fontFamily.includes('cursive')) {
-      return 'cursive';
+      return 'Comic Sans MS, cursive';
     } else {
-      return 'sans-serif';
+      return 'Arial, sans-serif';
     }
   }
   

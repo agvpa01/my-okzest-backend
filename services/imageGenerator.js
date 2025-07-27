@@ -79,7 +79,9 @@ const drawTextElement = async (ctx, element, variableValue) => {
     // Ensure font is available
     const availableFont = await fontManager.ensureFontAvailable(fontFamily);
     
-    ctx.font = `${fontWeight} ${fontSize}px "${availableFont}"`;
+    // Use fallback fonts for better compatibility
+    const fontStack = `"${availableFont}", Arial, sans-serif`;
+    ctx.font = `${fontWeight} ${fontSize}px ${fontStack}`;
     ctx.fillStyle = element.data.color || '#000000';
     ctx.textAlign = element.data.textAlign || 'left';
     ctx.textBaseline = 'top';
