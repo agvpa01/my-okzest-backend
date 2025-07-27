@@ -2,6 +2,7 @@ import { createCanvas, loadImage, registerFont } from 'canvas';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import fontManager from '../utils/fontManager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -75,7 +76,10 @@ const drawTextElement = async (ctx, element, variableValue) => {
     const fontFamily = element.data.fontFamily || 'Arial';
     const fontWeight = element.data.fontWeight || 'normal';
     
-    ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+    // Ensure font is available
+    const availableFont = await fontManager.ensureFontAvailable(fontFamily);
+    
+    ctx.font = `${fontWeight} ${fontSize}px "${availableFont}"`;
     ctx.fillStyle = element.data.color || '#000000';
     ctx.textAlign = element.data.textAlign || 'left';
     ctx.textBaseline = 'top';
@@ -120,7 +124,7 @@ const drawImageElement = async (ctx, element, variableValue) => {
       
       // Draw placeholder text
       ctx.fillStyle = '#666666';
-      ctx.font = '14px Arial';
+      ctx.font = '14px "Arial", sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(
         'Image', 
