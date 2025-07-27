@@ -11,11 +11,11 @@ RUN apk add --no-cache \
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package file
+COPY package.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm install --only=production --legacy-peer-deps && npm cache clean --force
 
 # Copy application code
 COPY . .
