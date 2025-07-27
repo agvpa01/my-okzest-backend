@@ -132,23 +132,23 @@ class FontManager {
       const regularFontPath = path.join(fontDir, `${googleFontName.replace(/\s+/g, '_')}-400.ttf`);
       const boldFontPath = path.join(fontDir, `${googleFontName.replace(/\s+/g, '_')}-700.ttf`);
       
-      // Use a simplified family name for registration
-      const simpleFamilyName = googleFontName.replace(/\s+/g, '');
+      // Use the original Google Font name for registration
+      const familyName = googleFontName;
       
       // Register regular weight
       if (fs.existsSync(regularFontPath)) {
-        registerFont(regularFontPath, { family: simpleFamilyName });
-        console.log(`Registered font: ${simpleFamilyName} (regular)`);
+        registerFont(regularFontPath, { family: familyName });
+        console.log(`Registered font: ${familyName} (regular)`);
       }
       
       // Register bold weight if available
       if (fs.existsSync(boldFontPath)) {
-        registerFont(boldFontPath, { family: simpleFamilyName, weight: 'bold' });
-        console.log(`Registered font: ${simpleFamilyName} (bold)`);
+        registerFont(boldFontPath, { family: familyName, weight: 'bold' });
+        console.log(`Registered font: ${familyName} (bold)`);
       }
       
       this.registeredFonts.add(fontKey);
-      return simpleFamilyName;
+      return familyName;
     } catch (error) {
       console.error(`Error registering font ${fontFamily}:`, error);
       return this.getFallbackFont(fontFamily);
@@ -170,15 +170,18 @@ class FontManager {
   
   async ensureFontAvailable(fontFamily) {
     try {
-      // For now, use system fonts to ensure compatibility
-      // This provides immediate text rendering while font downloading happens in background
+      // Try to register and use the actual Google Font
+      const registeredFont = await this.registerFont(fontFamily);
+      
+      // If registration was successful, return the registered font name
+      if (registeredFont && !registeredFont.includes('Arial') && !registeredFont.includes('Times') && !registeredFont.includes('Courier') && !registeredFont.includes('Comic')) {
+        return registeredFont;
+      }
+      
+      // Fallback to system font if Google Font registration failed
       const systemFont = this.getSystemFont(fontFamily);
-      
-      // Attempt to register Google Font in background (non-blocking)
-      this.registerFont(fontFamily).catch(err => {
-        console.log(`Background font registration failed for ${fontFamily}:`, err.message);
-      });
-      
+      console.log(`Using system font fallback: ${systemFont}`);
+      console.log(`=== FONT DEBUG END ===\n`);
       return systemFont;
     } catch (error) {
       console.error(`Error ensuring font availability for ${fontFamily}:`, error);

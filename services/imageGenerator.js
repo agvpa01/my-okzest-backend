@@ -80,7 +80,8 @@ const drawTextElement = async (ctx, element, variableValue) => {
     const resolvedFont = await fontManager.ensureFontAvailable(fontFamily);
     
     // Set font with Google Fonts support and fallbacks
-    ctx.font = `${fontWeight} ${fontSize}px ${resolvedFont}, Arial, DejaVu Sans, Liberation Sans, sans-serif`;
+    const fontString = `${fontWeight} ${fontSize}px "${resolvedFont}", Arial, DejaVu Sans, Liberation Sans, sans-serif`;
+    ctx.font = fontString;
     ctx.fillStyle = element.data.color || '#000000';
     ctx.textAlign = element.data.textAlign || 'left';
     ctx.textBaseline = 'top';

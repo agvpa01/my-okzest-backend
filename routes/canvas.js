@@ -390,9 +390,9 @@ router.get('/test-fonts', async (req, res) => {
         data: {
           type: 'text',
           content: 'Test Text',
-          fontSize: 24,
+          fontSize: 34,
           fontFamily: 'Oswald, sans-serif',
-          fontWeight: 'bold',
+          fontWeight: 'normal',
           color: '#374151'
         }
       },
