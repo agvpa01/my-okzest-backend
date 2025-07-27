@@ -7,6 +7,10 @@ RUN apk add --no-cache \
     ttf-liberation \
     ttf-opensans \
     python3 \
+    py3-pip \
+    py3-setuptools \
+    py3-wheel \
+    py3-distutils \  # ✅ THIS LINE FIXES THE ERROR
     make \
     g++ \
     pkgconfig \
@@ -25,7 +29,7 @@ WORKDIR /app
 COPY package.json ./
 
 # Install dependencies
-RUN npm install --only=production --legacy-peer-deps && npm cache clean
+RUN npm install --only=production --legacy-peer-deps && npm cache clean --force
 
 # Copy application code
 COPY . .
