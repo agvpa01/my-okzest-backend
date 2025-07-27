@@ -76,19 +76,8 @@ const drawTextElement = async (ctx, element, variableValue) => {
     const fontFamily = element.data.fontFamily || 'Arial';
     const fontWeight = element.data.fontWeight || 'normal';
     
-    // Use simple system fonts to avoid rendering issues
-    let systemFont = 'Arial';
-    const lowerFamily = fontFamily.toLowerCase();
-    
-    if (lowerFamily.includes('serif') || lowerFamily.includes('times') || lowerFamily.includes('playfair') || lowerFamily.includes('merriweather')) {
-      systemFont = 'Times New Roman';
-    } else if (lowerFamily.includes('mono') || lowerFamily.includes('code') || lowerFamily.includes('courier')) {
-      systemFont = 'Courier New';
-    } else if (lowerFamily.includes('impact') || lowerFamily.includes('oswald') || lowerFamily.includes('bebas')) {
-      systemFont = 'Impact';
-    }
-    
-    ctx.font = `${fontWeight} ${fontSize}px "${systemFont}", sans-serif`;
+    // Use Arial with fallbacks for containerized environments
+    ctx.font = `${fontWeight} ${fontSize}px Arial, DejaVu Sans, Liberation Sans, sans-serif`;
     ctx.fillStyle = element.data.color || '#000000';
     ctx.textAlign = element.data.textAlign || 'left';
     ctx.textBaseline = 'top';
@@ -133,7 +122,7 @@ const drawImageElement = async (ctx, element, variableValue) => {
       
       // Draw placeholder text
       ctx.fillStyle = '#666666';
-      ctx.font = '14px "Arial", sans-serif';
+      ctx.font = '14px Arial';
       ctx.textAlign = 'center';
       ctx.fillText(
         'Image', 
