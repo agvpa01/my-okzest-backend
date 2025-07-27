@@ -25,7 +25,7 @@ WORKDIR /app
 COPY package.json ./
 
 # Install dependencies
-RUN npm install --only=production --legacy-peer-deps && npm cache clean --force
+RUN npm install --only=production --legacy-peer-deps && npm cache clean
 
 # Copy application code
 COPY . .
