@@ -1,11 +1,18 @@
 FROM node:18-alpine
 
-# Install fontconfig and common fonts for canvas text rendering
+# Install fontconfig, fonts, and build dependencies for canvas
 RUN apk add --no-cache \
     fontconfig \
     ttf-dejavu \
     ttf-liberation \
     ttf-opensans \
+    python3 \
+    make \
+    g++ \
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    giflib-dev \
     && fc-cache -fv
 
 # Set working directory
