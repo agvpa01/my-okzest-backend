@@ -1,37 +1,39 @@
-FROM node:18-alpine
+FROM node:18-bullseye
 
-# Install fontconfig, fonts, and build dependencies for canvas
-RUN apk add --no-cache \
-    fontconfig \
-    ttf-dejavu \
-    ttf-liberation \
-    ttf-opensans \
+# Install system dependencies for canvas and fonts
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libgif-dev \
+    librsvg2-dev \
     python3 \
-    py3-pip \
-    py3-setuptools \
-    py3-wheel \
-    py3-distutils \
-    make \
-    g++ \
-    pkgconfig \
-    cairo-dev \
-    jpeg-dev \
-    pango-dev \
-    giflib-dev \
-    pixman-dev \
-    libc6-compat \
-    && fc-cache -fv
+    python3-pip \
+    python3-setuptools \
+    fonts-dejavu-core \
+    fonts-liberation \
+    fonts-open-sans \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
+# Set working directory
 WORKDIR /app
 
+# Copy package file
 COPY package.json ./
 
+# Install only production dependencies
 RUN npm install --only=production --legacy-peer-deps && npm cache clean --force
 
+# Copy all application files
 COPY . .
 
+# Optional: Create fonts directory
 RUN mkdir -p fonts
 
+# Expose the app port
 EXPOSE 3001
 
+# Start the application
 CMD ["npm", "start"]
