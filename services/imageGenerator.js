@@ -76,12 +76,19 @@ const drawTextElement = async (ctx, element, variableValue) => {
     const fontFamily = element.data.fontFamily || 'Arial';
     const fontWeight = element.data.fontWeight || 'normal';
     
-    // Ensure font is available
-    const availableFont = await fontManager.ensureFontAvailable(fontFamily);
+    // Use simple system fonts to avoid rendering issues
+    let systemFont = 'Arial';
+    const lowerFamily = fontFamily.toLowerCase();
     
-    // Use fallback fonts for better compatibility
-    const fontStack = `"${availableFont}", Arial, sans-serif`;
-    ctx.font = `${fontWeight} ${fontSize}px ${fontStack}`;
+    if (lowerFamily.includes('serif') || lowerFamily.includes('times') || lowerFamily.includes('playfair') || lowerFamily.includes('merriweather')) {
+      systemFont = 'Times New Roman';
+    } else if (lowerFamily.includes('mono') || lowerFamily.includes('code') || lowerFamily.includes('courier')) {
+      systemFont = 'Courier New';
+    } else if (lowerFamily.includes('impact') || lowerFamily.includes('oswald') || lowerFamily.includes('bebas')) {
+      systemFont = 'Impact';
+    }
+    
+    ctx.font = `${fontWeight} ${fontSize}px "${systemFont}", sans-serif`;
     ctx.fillStyle = element.data.color || '#000000';
     ctx.textAlign = element.data.textAlign || 'left';
     ctx.textBaseline = 'top';
