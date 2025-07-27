@@ -73,11 +73,14 @@ const drawTextElement = async (ctx, element, variableValue) => {
     
     // Set font properties
     const fontSize = element.data.fontSize || 16;
-    const fontFamily = element.data.fontFamily || 'Arial';
+    const fontFamily = element.data.fontFamily || 'Arial, sans-serif';
     const fontWeight = element.data.fontWeight || 'normal';
     
-    // Use Arial with fallbacks for containerized environments
-    ctx.font = `${fontWeight} ${fontSize}px Arial, DejaVu Sans, Liberation Sans, sans-serif`;
+    // Get the appropriate font using fontManager
+    const resolvedFont = await fontManager.ensureFontAvailable(fontFamily);
+    
+    // Set font with Google Fonts support and fallbacks
+    ctx.font = `${fontWeight} ${fontSize}px ${resolvedFont}, Arial, DejaVu Sans, Liberation Sans, sans-serif`;
     ctx.fillStyle = element.data.color || '#000000';
     ctx.textAlign = element.data.textAlign || 'left';
     ctx.textBaseline = 'top';

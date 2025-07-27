@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     fonts-dejavu-core \
     fonts-liberation \
     fonts-open-sans \
+    curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -29,8 +30,8 @@ RUN npm install --only=production --legacy-peer-deps && npm cache clean --force
 # Copy all application files
 COPY . .
 
-# Optional: Create fonts directory
-RUN mkdir -p fonts
+# Create fonts directory for Google Fonts
+RUN mkdir -p /app/fonts && chmod 755 /app/fonts
 
 # Expose the app port
 EXPOSE 3001

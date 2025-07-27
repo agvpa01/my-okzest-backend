@@ -2,6 +2,7 @@ import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { runQuery, getQuery, getAllQuery } from '../database/init.js';
 import { generateCanvasImage } from '../services/imageGenerator.js';
+import fontManager from '../utils/fontManager.js';
 
 const router = express.Router();
 
@@ -355,6 +356,105 @@ router.get('/templates/:id/variables', async (req, res) => {
   } catch (error) {
     console.error('Error fetching variables:', error);
     res.status(500).json({ error: 'Failed to fetch variables' });
+  }
+});
+
+// Test Google Fonts functionality
+router.get('/test-fonts', async (req, res) => {
+  try {
+    const config = {
+      width: 800,
+      height: 600
+    };
+    
+    const elements = [
+      {
+        id: 'title',
+        variableName: 'title',
+        x: 50,
+        y: 50,
+        data: {
+          type: 'text',
+          content: 'Montserrat Font Test',
+          fontSize: 32,
+          fontFamily: 'Montserrat, sans-serif',
+          fontWeight: 'bold',
+          color: '#2563eb'
+        }
+      },
+      {
+        id: 'subtitle',
+        variableName: 'subtitle',
+        x: 50,
+        y: 120,
+        data: {
+          type: 'text',
+          content: 'Test Text',
+          fontSize: 24,
+          fontFamily: 'Oswald, sans-serif',
+          fontWeight: 'bold',
+          color: '#374151'
+        }
+      },
+      {
+        id: 'script',
+        variableName: 'script',
+        x: 50,
+        y: 180,
+        data: {
+          type: 'text',
+          content: 'Dancing Script Cursive',
+          fontSize: 28,
+          fontFamily: 'Dancing Script, cursive',
+          fontWeight: 'normal',
+          color: '#dc2626'
+        }
+      },
+      {
+        id: 'serif',
+        variableName: 'serif',
+        x: 50,
+        y: 240,
+        data: {
+          type: 'text',
+          content: 'Playfair Display Serif',
+          fontSize: 26,
+          fontFamily: 'Playfair Display, serif',
+          fontWeight: 'normal',
+          color: '#059669'
+        }
+      },
+      {
+        id: 'mono',
+        variableName: 'mono',
+        x: 50,
+        y: 300,
+        data: {
+          type: 'text',
+          content: 'Source Code Pro Monospace',
+          fontSize: 20,
+          fontFamily: 'Source Code Pro, monospace',
+          fontWeight: 'normal',
+          color: '#7c3aed'
+        }
+      }
+    ];
+    
+    const params = req.query;
+    
+    // Generate test image with Google Fonts
+    const imageBuffer = await generateCanvasImage(config, elements, params);
+    
+    res.set({
+      'Content-Type': 'image/png',
+      'Cache-Control': 'no-cache',
+      'Access-Control-Allow-Origin': '*'
+    });
+    
+    res.send(imageBuffer);
+  } catch (error) {
+    console.error('Error generating font test image:', error);
+    res.status(500).json({ error: 'Failed to generate font test image' });
   }
 });
 
