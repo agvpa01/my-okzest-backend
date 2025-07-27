@@ -291,6 +291,17 @@ router.delete('/templates/:id', async (req, res) => {
   }
 });
 
+// Handle OPTIONS request for CORS preflight
+router.options('/render/:id', (req, res) => {
+  res.set({
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Max-Age': '86400'
+  });
+  res.status(200).end();
+});
+
 // Generate dynamic image from template
 router.get('/render/:id', async (req, res) => {
   try {
@@ -313,10 +324,14 @@ router.get('/render/:id', async (req, res) => {
     // Generate image
     const imageBuffer = await generateCanvasImage(config, elements, params);
     
-    // Set appropriate headers
+    // Set appropriate headers for PNG images
     res.set({
-      'Content-Type': 'image/svg+xml',
-      'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+      'Content-Type': 'image/png',
+      'Cache-Control': 'public, max-age=3600',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'X-Content-Type-Options': 'nosniff'
     });
     
     res.send(imageBuffer);
