@@ -33,12 +33,12 @@ router.post('/categories', async (req, res) => {
     const categoryId = uuidv4();
     
     await runQuery(
-      'INSERT INTO categories (id, name, color) VALUES (?, ?, ?)',
+      'INSERT INTO categories (id, name, color) VALUES ($1, $2, $3)',
       [categoryId, name, color]
     );
 
     const category = await getQuery(
-      'SELECT * FROM categories WHERE id = ?',
+      'SELECT * FROM categories WHERE id = $1',
       [categoryId]
     );
 
@@ -59,7 +59,7 @@ router.put('/categories/:id', async (req, res) => {
     const { name, color } = req.body;
     
     const existingCategory = await getQuery(
-      'SELECT id FROM categories WHERE id = ?',
+      'SELECT id FROM categories WHERE id = $1',
       [id]
     );
     
@@ -68,12 +68,12 @@ router.put('/categories/:id', async (req, res) => {
     }
 
     await runQuery(
-      'UPDATE categories SET name = ?, color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      'UPDATE categories SET name = $1, color = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
       [name, color, id]
     );
 
     const category = await getQuery(
-      'SELECT * FROM categories WHERE id = ?',
+      'SELECT * FROM categories WHERE id = $1',
       [id]
     );
 
@@ -93,7 +93,7 @@ router.delete('/categories/:id', async (req, res) => {
     const { id } = req.params;
     
     const result = await runQuery(
-      'DELETE FROM categories WHERE id = ?',
+      'DELETE FROM categories WHERE id = $1',
       [id]
     );
     
@@ -125,14 +125,14 @@ router.post('/templates', async (req, res) => {
     
     // Save template
     await runQuery(
-      'INSERT INTO canvas_templates (id, name, config, elements, category_id) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO canvas_templates (id, name, config, elements, category_id) VALUES ($1, $2, $3, $4, $5)',
       [templateId, name, JSON.stringify(config), JSON.stringify(elements), categoryId || null]
     );
 
     // Extract and save variables
     const variablePromises = elements.map(element => {
       return runQuery(
-        'INSERT INTO canvas_variables (template_id, variable_name, element_id, element_type, default_value) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO canvas_variables (template_id, variable_name, element_id, element_type, default_value) VALUES ($1, $2, $3, $4, $5)',
         [
           templateId,
           element.variableName,
@@ -193,7 +193,7 @@ router.get('/templates/:id', async (req, res) => {
     const { id } = req.params;
     
     const template = await getQuery(
-      'SELECT * FROM canvas_templates WHERE id = ?',
+      'SELECT * FROM canvas_templates WHERE id = $1',
       [id]
     );
     
@@ -202,7 +202,7 @@ router.get('/templates/:id', async (req, res) => {
     }
 
     const variables = await getAllQuery(
-      'SELECT variable_name, element_type, default_value FROM canvas_variables WHERE template_id = ?',
+      'SELECT variable_name, element_type, default_value FROM canvas_variables WHERE template_id = $1',
       [id]
     );
 
@@ -226,7 +226,7 @@ router.put('/templates/:id', async (req, res) => {
     
     // Check if template exists
     const existingTemplate = await getQuery(
-      'SELECT id FROM canvas_templates WHERE id = ?',
+      'SELECT id FROM canvas_templates WHERE id = $1',
       [id]
     );
     
@@ -236,16 +236,16 @@ router.put('/templates/:id', async (req, res) => {
 
     // Update template
     await runQuery(
-      'UPDATE canvas_templates SET name = ?, config = ?, elements = ?, category_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      'UPDATE canvas_templates SET name = $1, config = $2, elements = $3, category_id = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5',
       [name, JSON.stringify(config), JSON.stringify(elements), categoryId || null, id]
     );
 
     // Delete old variables and insert new ones
-    await runQuery('DELETE FROM canvas_variables WHERE template_id = ?', [id]);
+    await runQuery('DELETE FROM canvas_variables WHERE template_id = $1', [id]);
     
     const variablePromises = elements.map(element => {
       return runQuery(
-        'INSERT INTO canvas_variables (template_id, variable_name, element_id, element_type, default_value) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO canvas_variables (template_id, variable_name, element_id, element_type, default_value) VALUES ($1, $2, $3, $4, $5)',
         [
           id,
           element.variableName,
@@ -274,7 +274,7 @@ router.delete('/templates/:id', async (req, res) => {
     const { id } = req.params;
     
     const result = await runQuery(
-      'DELETE FROM canvas_templates WHERE id = ?',
+      'DELETE FROM canvas_templates WHERE id = $1',
       [id]
     );
     
@@ -311,7 +311,7 @@ router.get('/render/:id', async (req, res) => {
     
     // Get template data
     const template = await getQuery(
-      'SELECT config, elements FROM canvas_templates WHERE id = ?',
+      'SELECT config, elements FROM canvas_templates WHERE id = $1',
       [id]
     );
     
@@ -348,7 +348,7 @@ router.get('/templates/:id/variables', async (req, res) => {
     const { id } = req.params;
     
     const variables = await getAllQuery(
-      'SELECT variable_name, element_type, default_value FROM canvas_variables WHERE template_id = ? ORDER BY variable_name',
+      'SELECT variable_name, element_type, default_value FROM canvas_variables WHERE template_id = $1 ORDER BY variable_name',
       [id]
     );
 
