@@ -15,15 +15,59 @@ if (!fs.existsSync(generatedDir)) {
 }
 
 // PostgreSQL connection configuration
-const connectionString = 'postgres://postgres:UNAP7BAjtSjKOco31ARIKAqqCD6fzlmEMmi1SlyXxWI8AFRMP5K4nLAVnaK1X6iI@194.195.120.254:5433/postgres';
+// Use environment variable if available, otherwise fallback to default
+const connectionString = process.env.DATABASE_URL || 
+  'postgres://postgres:UNAP7BAjtSjKOco31ARIKAqqCD6fzlmEMmi1SlyXxWI8AFRMP5K4nLAVnaK1X6iI@194.195.120.254:5433/postgres';
+
+console.log('🔗 Database connection info:');
+console.log(`   Host: ${connectionString.split('@')[1]?.split('/')[0] || 'Unknown'}`);
+console.log(`   Database: ${connectionString.split('/').pop() || 'Unknown'}`);
+console.log(`   Using environment variable: ${process.env.DATABASE_URL ? 'Yes' : 'No'}`);
 
 export const db = new Pool({
   connectionString,
-  ssl: false // Set to true if SSL is required
+  ssl: false, // Set to true if SSL is required
+  max: 20, // Maximum number of clients in the pool
+  min: 2, // Minimum number of clients in the pool
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection could not be established
+  acquireTimeoutMillis: 60000, // Return an error after 60 seconds if a client could not be checked out
+  statement_timeout: 30000, // Number of milliseconds before a statement in query will time out
+  query_timeout: 30000, // Number of milliseconds before a query call will timeout
+  application_name: 'dynamic-canvas-backend'
 });
+
+// Test database connection with retry logic
+const testConnection = async (retries = 3, delay = 5000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      console.log(`🔄 Testing database connection (attempt ${i + 1}/${retries})...`);
+      const client = await db.connect();
+      await client.query('SELECT NOW()');
+      client.release();
+      console.log('✅ Database connection successful');
+      return true;
+    } catch (err) {
+      console.error(`❌ Connection attempt ${i + 1} failed:`, err.message);
+      if (i < retries - 1) {
+        console.log(`⏳ Retrying in ${delay/1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  return false;
+};
 
 export const initDatabase = async () => {
   try {
+    // Test connection first
+    const isConnected = await testConnection();
+    if (!isConnected) {
+      throw new Error('Failed to establish database connection after multiple attempts');
+    }
+
+    console.log('🏗️  Initializing database tables...');
+
     // Create categories table
     await db.query(`
       CREATE TABLE IF NOT EXISTS categories (
@@ -71,7 +115,12 @@ export const initDatabase = async () => {
 
     console.log('✅ PostgreSQL Database initialized successfully');
   } catch (err) {
-    console.error('Database initialization error:', err);
+    console.error('❌ Database initialization error:', err);
+    console.error('💡 Troubleshooting tips:');
+    console.error('   - Check if the PostgreSQL server is running');
+    console.error('   - Verify the connection string and credentials');
+    console.error('   - Ensure the server allows connections from your IP');
+    console.error('   - Check firewall settings on port 5433');
     throw err;
   }
 };
