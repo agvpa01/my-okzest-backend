@@ -127,9 +127,8 @@ generated/
 build/
 dist/
 
-# Upload directories (ignore files but keep folder structure)
-uploads/*
-!uploads/.gitkeep
+# Upload directories - now tracking all files
+# uploads/* (commented out to allow file uploads to be tracked)
 
 # SSL certificates
 *.pem
