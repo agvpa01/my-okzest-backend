@@ -6,6 +6,29 @@ import fontManager from '../utils/fontManager.js';
 
 const router = express.Router();
 
+// Helper function to replace BASE_URL with actual backend URL
+function replaceBaseUrl(obj, req) {
+  const backendUrl = `${req.protocol}://${req.get('host')}`;
+  
+  if (typeof obj === 'string') {
+    return obj.replace(/BASE_URL/g, backendUrl);
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => replaceBaseUrl(item, req));
+  }
+  
+  if (obj && typeof obj === 'object') {
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = replaceBaseUrl(value, req);
+    }
+    return result;
+  }
+  
+  return obj;
+}
+
 // Category management routes
 
 // Get all categories
@@ -241,7 +264,10 @@ router.get('/templates', async (req, res) => {
       };
     }));
     
-    res.json({ templates: parsedTemplates });
+    // Replace BASE_URL with actual backend URL in all templates
+    const templatesWithReplacedUrls = replaceBaseUrl(parsedTemplates, req);
+    
+    res.json({ templates: templatesWithReplacedUrls });
   } catch (error) {
     console.error('Error fetching templates:', error);
     res.status(500).json({ error: 'Failed to fetch templates' });
@@ -267,12 +293,17 @@ router.get('/templates/:id', async (req, res) => {
       [id]
     );
 
-    res.json({
+    const templateData = {
       ...template,
       config: JSON.parse(template.config),
       elements: JSON.parse(template.elements),
       variables
-    });
+    };
+
+    // Replace BASE_URL with actual backend URL
+    const templateWithReplacedUrls = replaceBaseUrl(templateData, req);
+
+    res.json(templateWithReplacedUrls);
   } catch (error) {
     console.error('Error fetching template:', error);
     res.status(500).json({ error: 'Failed to fetch template' });

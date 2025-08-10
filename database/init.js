@@ -120,6 +120,59 @@ export const initDatabase = async () => {
       ON canvas_variables (template_id, variable_name)
     `);
 
+    // Create template_groups table for scheduling
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS template_groups (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        is_active BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create template_group_members table
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS template_group_members (
+        id SERIAL PRIMARY KEY,
+        group_id TEXT NOT NULL,
+        template_id TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (group_id) REFERENCES template_groups (id) ON DELETE CASCADE,
+        FOREIGN KEY (template_id) REFERENCES canvas_templates (id) ON DELETE CASCADE,
+        UNIQUE(group_id, template_id)
+      )
+    `);
+
+    // Create template_schedules table
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS template_schedules (
+        id TEXT PRIMARY KEY,
+        group_id TEXT NOT NULL,
+        year INTEGER NOT NULL,
+        month INTEGER NOT NULL,
+        day INTEGER NOT NULL,
+        hour INTEGER NOT NULL,
+        minute INTEGER NOT NULL,
+        is_executed BOOLEAN DEFAULT FALSE,
+        executed_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (group_id) REFERENCES template_groups (id) ON DELETE CASCADE
+      )
+    `);
+
+    // Create indexes for scheduling queries
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS idx_template_schedules_datetime 
+      ON template_schedules (year, month, day, hour, minute, is_executed)
+    `);
+
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS idx_template_groups_active 
+      ON template_groups (is_active)
+    `);
+
     console.log('✅ PostgreSQL Database initialized successfully');
   } catch (err) {
     console.error('❌ Database initialization error:', err);

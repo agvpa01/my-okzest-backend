@@ -5,7 +5,9 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
 import { canvasRoutes } from './routes/canvas.js';
+import { schedulerRoutes } from './routes/scheduler.js';
 import { initDatabase, checkDatabaseAvailability } from './database/init.js';
+import { schedulerService } from './services/schedulerService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -83,6 +85,7 @@ app.post('/api/upload-image', upload.single('image'), (req, res) => {
 
 // Routes
 app.use('/api/canvas', canvasRoutes);
+app.use('/api/scheduler', schedulerRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -115,6 +118,19 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
+// Graceful shutdown handler
+process.on('SIGINT', () => {
+  console.log('\n🛑 Shutting down gracefully...');
+  schedulerService.stop();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('\n🛑 Shutting down gracefully...');
+  schedulerService.stop();
+  process.exit(0);
+});
+
 // Initialize database and start server
 initDatabase()
   .then(() => {
@@ -129,6 +145,7 @@ initDatabase()
       console.log(`🚀 Dynamic Canvas Backend running on port ${PORT}`);
       console.log(`📊 Health check: http://localhost:${PORT}/health`);
       console.log(`🎨 Canvas API: http://localhost:${PORT}/api/canvas`);
+      console.log(`📅 Scheduler API: http://localhost:${PORT}/api/scheduler`);
       console.log(`💡 Note: Some features may be limited if database is unavailable`);
     });
   });
