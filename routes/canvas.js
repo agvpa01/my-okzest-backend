@@ -168,16 +168,77 @@ router.get('/templates', async (req, res) => {
       ORDER BY t.updated_at DESC
     `);
     
-    // Parse config and elements for each template
-    const parsedTemplates = templates.map(template => ({
-      ...template,
-      config: JSON.parse(template.config),
-      elements: JSON.parse(template.elements),
-      category: template.category_id ? {
-        id: template.category_id,
-        name: template.category_name,
-        color: template.category_color
-      } : null
+    // Parse config and elements for each template and convert base64 images
+    const parsedTemplates = await Promise.all(templates.map(async (template) => {
+      let config, elements;
+      let templateUpdated = false;
+      
+      try {
+        config = JSON.parse(template.config);
+        elements = JSON.parse(template.elements);
+      } catch (err) {
+        console.error(`Failed to parse template ${template.id}:`, err.message);
+        return {
+          ...template,
+          config: {},
+          elements: [],
+          category: template.category_id ? {
+            id: template.category_id,
+            name: template.category_name,
+            color: template.category_color
+          } : null
+        };
+      }
+      
+      // Check and convert background image
+      if (config.backgroundImage && config.backgroundImage.startsWith('data:image/')) {
+        try {
+          const imageUrl = await convertBase64ToFile(config.backgroundImage, 'background');
+          config.backgroundImage = imageUrl;
+          templateUpdated = true;
+          console.log(`✅ Auto-converted background image for template: ${template.name}`);
+        } catch (err) {
+          console.error(`❌ Failed to convert background image for template ${template.id}:`, err.message);
+        }
+      }
+      
+      // Check and convert image elements
+      for (const element of elements) {
+        if (element.data?.type === 'image' && element.data?.src && element.data.src.startsWith('data:image/')) {
+          try {
+            const imageUrl = await convertBase64ToFile(element.data.src, 'element');
+            element.data.src = imageUrl;
+            templateUpdated = true;
+            console.log(`✅ Auto-converted image element for template: ${template.name}`);
+          } catch (err) {
+            console.error(`❌ Failed to convert image element for template ${template.id}:`, err.message);
+          }
+        }
+      }
+      
+      // Update template in database if changes were made
+      if (templateUpdated) {
+        try {
+          await runQuery(
+            'UPDATE canvas_templates SET config = $1, elements = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
+            [JSON.stringify(config), JSON.stringify(elements), template.id]
+          );
+          console.log(`📝 Auto-updated template: ${template.name}`);
+        } catch (err) {
+          console.error(`❌ Failed to update template ${template.id}:`, err.message);
+        }
+      }
+      
+      return {
+        ...template,
+        config,
+        elements,
+        category: template.category_id ? {
+          id: template.category_id,
+          name: template.category_name,
+          color: template.category_color
+        } : null
+      };
     }));
     
     res.json({ templates: parsedTemplates });
@@ -457,5 +518,196 @@ router.get('/test-fonts', async (req, res) => {
     res.status(500).json({ error: 'Failed to generate font test image' });
   }
 });
+
+// Migration endpoint to replace localhost URLs with BASE_URL
+router.post('/migrate-urls', async (req, res) => {
+  try {
+    const templates = await getAllQuery('SELECT id, name, config, elements FROM canvas_templates');
+    let templatesUpdated = 0;
+    let urlsReplaced = 0;
+
+    for (const template of templates) {
+      let config, elements;
+      let templateUpdated = false;
+      
+      try {
+        config = JSON.parse(template.config);
+        elements = JSON.parse(template.elements);
+      } catch (err) {
+        console.error(`❌ Failed to parse template ${template.id}:`, err.message);
+        continue;
+      }
+      
+      // Replace localhost URLs in background image
+      if (config.backgroundImage && config.backgroundImage.includes('http://localhost:3002/uploads/')) {
+        config.backgroundImage = config.backgroundImage.replace('http://localhost:3002', 'BASE_URL');
+        templateUpdated = true;
+        urlsReplaced++;
+        console.log(`✅ Replaced background URL for template: ${template.name}`);
+      }
+      
+      // Replace localhost URLs in image elements
+      for (const element of elements) {
+        if (element.type === 'image' && element.data?.src && element.data.src.includes('http://localhost:3002/uploads/')) {
+          element.data.src = element.data.src.replace('http://localhost:3002', 'BASE_URL');
+          templateUpdated = true;
+          urlsReplaced++;
+          console.log(`✅ Replaced image element URL for template: ${template.name}`);
+        }
+      }
+      
+      // Update template in database if changes were made
+      if (templateUpdated) {
+        try {
+          await runQuery(
+            'UPDATE canvas_templates SET config = $1, elements = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
+            [JSON.stringify(config), JSON.stringify(elements), template.id]
+          );
+          templatesUpdated++;
+          console.log(`📝 Updated template: ${template.name}`);
+        } catch (err) {
+          console.error(`❌ Failed to update template ${template.id}:`, err.message);
+        }
+      }
+    }
+    
+    console.log(`🎉 URL migration completed: ${templatesUpdated} templates updated, ${urlsReplaced} URLs replaced`);
+    res.json({
+      success: true,
+      message: 'URL migration completed successfully',
+      templatesUpdated,
+      urlsReplaced
+    });
+  } catch (error) {
+    console.error('❌ URL migration failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'URL migration failed',
+      details: error.message
+    });
+  }
+});
+
+// Migration endpoint to convert base64 images to files
+router.post('/migrate-images', async (req, res) => {
+  try {
+    console.log('🔄 Starting image migration process...');
+    
+    // Get all templates
+    const templates = await getAllQuery(`
+      SELECT id, name, config, elements
+      FROM canvas_templates
+      ORDER BY created_at DESC
+    `);
+    
+    let migratedCount = 0;
+    let totalImagesProcessed = 0;
+    
+    for (const template of templates) {
+      let templateUpdated = false;
+      let config, elements;
+      
+      try {
+        config = JSON.parse(template.config);
+        elements = JSON.parse(template.elements);
+      } catch (err) {
+        console.error(`❌ Failed to parse template ${template.id}:`, err.message);
+        continue;
+      }
+      
+      // Check and convert background image
+      if (config.backgroundImage && config.backgroundImage.startsWith('data:image/')) {
+        try {
+          const imageUrl = await convertBase64ToFile(config.backgroundImage, 'background');
+          config.backgroundImage = imageUrl;
+          templateUpdated = true;
+          totalImagesProcessed++;
+          console.log(`✅ Converted background image for template: ${template.name}`);
+        } catch (err) {
+          console.error(`❌ Failed to convert background image for template ${template.id}:`, err.message);
+        }
+      }
+      
+      // Check and convert image elements
+      for (const element of elements) {
+        if (element.type === 'image' && element.data?.src && element.data.src.startsWith('data:image/')) {
+          try {
+            const imageUrl = await convertBase64ToFile(element.data.src, 'element');
+            element.data.src = imageUrl;
+            templateUpdated = true;
+            totalImagesProcessed++;
+            console.log(`✅ Converted image element for template: ${template.name}`);
+          } catch (err) {
+            console.error(`❌ Failed to convert image element for template ${template.id}:`, err.message);
+          }
+        }
+      }
+      
+      // Update template in database if changes were made
+      if (templateUpdated) {
+        await runQuery(
+          'UPDATE canvas_templates SET config = $1, elements = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
+          [JSON.stringify(config), JSON.stringify(elements), template.id]
+        );
+        migratedCount++;
+        console.log(`📝 Updated template: ${template.name}`);
+      }
+    }
+    
+    console.log(`🎉 Migration completed: ${migratedCount} templates updated, ${totalImagesProcessed} images converted`);
+    
+    res.json({
+      success: true,
+      message: 'Image migration completed successfully',
+      templatesUpdated: migratedCount,
+      imagesProcessed: totalImagesProcessed
+    });
+    
+  } catch (error) {
+    console.error('❌ Migration failed:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Migration failed', 
+      details: error.message 
+    });
+  }
+});
+
+// Helper function to convert base64 to file
+async function convertBase64ToFile(base64Data, prefix = 'image') {
+  const fs = await import('fs');
+  const path = await import('path');
+  const { fileURLToPath } = await import('url');
+  
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  
+  // Extract image format and data
+  const matches = base64Data.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/);
+  if (!matches) {
+    throw new Error('Invalid base64 image format');
+  }
+  
+  const [, format, imageData] = matches;
+  const buffer = Buffer.from(imageData, 'base64');
+  
+  // Generate unique filename
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 8);
+  const filename = `${prefix}_${timestamp}_${random}.${format}`;
+  
+  // Ensure uploads directory exists
+  const uploadsDir = path.join(__dirname, '..', 'uploads');
+  if (!fs.default.existsSync(uploadsDir)) {
+    fs.default.mkdirSync(uploadsDir, { recursive: true });
+  }
+  
+  // Save file
+  const filePath = path.join(uploadsDir, filename);
+  fs.default.writeFileSync(filePath, buffer);
+  
+  // Return URL with BASE_URL placeholder
+  return `BASE_URL/uploads/${filename}`;
+}
 
 export { router as canvasRoutes };

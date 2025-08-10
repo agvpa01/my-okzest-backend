@@ -32,8 +32,8 @@ export const db = new Pool({
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
   connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection could not be established
   acquireTimeoutMillis: 60000, // Return an error after 60 seconds if a client could not be checked out
-  statement_timeout: 30000, // Number of milliseconds before a statement in query will time out
-  query_timeout: 30000, // Number of milliseconds before a query call will timeout
+  statement_timeout: 120000, // Number of milliseconds before a statement in query will time out
+  query_timeout: 120000, // Number of milliseconds before a query call will timeout
   application_name: 'dynamic-canvas-backend'
 });
 
@@ -58,14 +58,21 @@ const testConnection = async (retries = 3, delay = 5000) => {
   return false;
 };
 
+// Global flag to track database availability
+let isDatabaseAvailable = false;
+
 export const initDatabase = async () => {
   try {
     // Test connection first
     const isConnected = await testConnection();
     if (!isConnected) {
-      throw new Error('Failed to establish database connection after multiple attempts');
+      console.warn('⚠️  Database connection failed, starting in offline mode');
+      console.warn('📝 Application will use in-memory storage for this session');
+      isDatabaseAvailable = false;
+      return; // Don't throw error, allow app to start
     }
 
+    isDatabaseAvailable = true;
     console.log('🏗️  Initializing database tables...');
 
     // Create categories table
@@ -121,40 +128,70 @@ export const initDatabase = async () => {
     console.error('   - Verify the connection string and credentials');
     console.error('   - Ensure the server allows connections from your IP');
     console.error('   - Check firewall settings on port 5433');
-    throw err;
+    console.warn('⚠️  Starting in offline mode due to database connection issues');
+    isDatabaseAvailable = false;
+    // Don't throw error, allow app to start in offline mode
   }
+};
+
+// Check if database is available
+export const checkDatabaseAvailability = () => isDatabaseAvailable;
+
+// In-memory storage for offline mode
+let inMemoryStorage = {
+  categories: [],
+  canvas_templates: [],
+  canvas_variables: []
 };
 
 // Helper function to run database queries with promises
 export const runQuery = async (sql, params = []) => {
+  if (!isDatabaseAvailable) {
+    console.warn('⚠️  Database unavailable, operation skipped');
+    return { lastID: null, changes: 0, rows: [] };
+  }
+  
   try {
     const result = await db.query(sql, params);
-    return { 
-      id: result.rows[0]?.id || null, 
-      changes: result.rowCount,
+    return {
+      lastID: result.rows[0]?.id || null,
+      changes: result.rowCount || 0,
       rows: result.rows
     };
   } catch (err) {
+    console.error('Database query error:', err);
     throw err;
   }
 };
 
-// Helper function to get data from database
+// Helper function to get a single row
 export const getQuery = async (sql, params = []) => {
+  if (!isDatabaseAvailable) {
+    console.warn('⚠️  Database unavailable, returning null');
+    return null;
+  }
+  
   try {
     const result = await db.query(sql, params);
     return result.rows[0] || null;
   } catch (err) {
+    console.error('Database query error:', err);
     throw err;
   }
 };
 
-// Helper function to get all rows from database
+// Helper function to get all rows
 export const getAllQuery = async (sql, params = []) => {
+  if (!isDatabaseAvailable) {
+    console.warn('⚠️  Database unavailable, returning empty array');
+    return [];
+  }
+  
   try {
     const result = await db.query(sql, params);
     return result.rows;
   } catch (err) {
+    console.error('Database query error:', err);
     throw err;
   }
 };

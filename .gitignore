@@ -127,8 +127,9 @@ generated/
 build/
 dist/
 
-# Upload directories
-uploads/
+# Upload directories (ignore files but keep folder structure)
+uploads/*
+!uploads/.gitkeep
 
 # SSL certificates
 *.pem
