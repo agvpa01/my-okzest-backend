@@ -165,7 +165,7 @@ class SchedulerService {
         `, [templateId]);
         
         // Build backend render URL with variables
-         let templateUrl = `http://localhost:3002/api/canvas/render/${templateId}`;
+         let templateUrl = `${process.env.BASE_URL}/api/canvas/render/${templateId}`;
          if (variables.length > 0) {
            const variableParams = variables.map(v => `${v.variable_name}=REPLACE_ME`).join('&');
            templateUrl += `?${variableParams}`;

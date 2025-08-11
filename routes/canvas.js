@@ -573,7 +573,7 @@ router.post('/migrate-urls', async (req, res) => {
       
       // Replace localhost URLs in background image
       if (config.backgroundImage && config.backgroundImage.includes('http://localhost:3002/uploads/')) {
-        config.backgroundImage = config.backgroundImage.replace('http://localhost:3002', 'BASE_URL');
+        config.backgroundImage = config.backgroundImage.replace('http://localhost:3002', process.env.BASE_URL);
         templateUpdated = true;
         urlsReplaced++;
         console.log(`✅ Replaced background URL for template: ${template.name}`);
@@ -582,7 +582,7 @@ router.post('/migrate-urls', async (req, res) => {
       // Replace localhost URLs in image elements
       for (const element of elements) {
         if (element.type === 'image' && element.data?.src && element.data.src.includes('http://localhost:3002/uploads/')) {
-          element.data.src = element.data.src.replace('http://localhost:3002', 'BASE_URL');
+          element.data.src = element.data.src.replace('http://localhost:3002', process.env.BASE_URL);
           templateUpdated = true;
           urlsReplaced++;
           console.log(`✅ Replaced image element URL for template: ${template.name}`);
@@ -739,8 +739,8 @@ async function convertBase64ToFile(base64Data, prefix = 'image') {
   const filePath = path.join(uploadsDir, filename);
   fs.default.writeFileSync(filePath, buffer);
   
-  // Return URL with BASE_URL placeholder
-  return `BASE_URL/uploads/${filename}`;
+  // Return URL with BASE_URL environment variable
+  return `${process.env.BASE_URL}/uploads/${filename}`;
 }
 
 export { router as canvasRoutes };
