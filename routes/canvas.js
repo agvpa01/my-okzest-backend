@@ -471,7 +471,9 @@ router.get('/test-fonts', async (req, res) => {
           fontSize: 32,
           fontFamily: 'Montserrat, sans-serif',
           fontWeight: 'bold',
-          color: '#2563eb'
+          color: '#2563eb',
+          strokeWidth: 2,
+          strokeColor: '#ff0000'
         }
       },
       {

@@ -79,15 +79,24 @@ const drawTextElement = async (ctx, element, variableValue) => {
     // Get the appropriate font using fontManager
     const resolvedFont = await fontManager.ensureFontAvailable(fontFamily);
     
-    // Set font with Google Fonts support and fallbacks
-    const fontString = `${fontWeight} ${fontSize}px "${resolvedFont}", Arial, DejaVu Sans, Liberation Sans, sans-serif`;
+    // Set font with proper fallbacks
+    let fontString;
+    if (resolvedFont === 'Arial' || resolvedFont === 'Arial, sans-serif') {
+      // For Arial, don't use quotes to ensure system font is used
+      fontString = `${fontWeight} ${fontSize}px Arial, sans-serif`;
+    } else {
+      // For other fonts, use quotes and fallbacks
+      fontString = `${fontWeight} ${fontSize}px "${resolvedFont}", Arial, DejaVu Sans, Liberation Sans, sans-serif`;
+    }
     ctx.font = fontString;
+    console.log(`Using font string: ${fontString}`);
     ctx.fillStyle = element.data.color || '#000000';
     ctx.textAlign = element.data.textAlign || 'left';
     ctx.textBaseline = 'top';
 
-    // Handle text wrapping if maxWidth is specified
-    const maxWidth = element.data.maxWidth || 400;
+    // Use actual element width if available, otherwise fall back to default
+    const elementWidth = element.data.width || 400;
+    const maxWidth = element.data.maxWidth || elementWidth;
     const lines = text.includes('\n') ? text.split('\n') : [text];
     
     let allLines = [];
@@ -99,9 +108,46 @@ const drawTextElement = async (ctx, element, variableValue) => {
       }
     });
 
-    // Draw each line
+    // Calculate x position based on text alignment using actual element width
+    const getXPosition = (line, textAlign, elementX, elementWidth) => {
+      switch (textAlign) {
+        case 'center':
+          return elementX + (elementWidth / 2);
+        case 'right':
+          return elementX + elementWidth;
+        default: // 'left'
+          return elementX;
+      }
+    };
+
+    // Get stroke properties
+    const strokeWidth = element.data.strokeWidth || 0;
+    const strokeColor = element.data.strokeColor || '#000000';
+    
+    // Draw each line with proper alignment using element width
     allLines.forEach((line, index) => {
-      ctx.fillText(line, element.x, element.y + (index * fontSize * 1.2));
+      const xPos = getXPosition(line, element.data.textAlign || 'left', element.x, elementWidth);
+      const yPos = element.y + (index * fontSize * 1.2);
+      
+      // Draw stroke effect using shadow technique (mimics frontend textShadow)
+      if (strokeWidth > 0) {
+        ctx.fillStyle = strokeColor;
+        
+        // Draw text in 8 directions to create stroke effect
+        const offsets = [
+          [-strokeWidth, 0], [strokeWidth, 0], [0, -strokeWidth], [0, strokeWidth],
+          [-strokeWidth, -strokeWidth], [strokeWidth, strokeWidth], 
+          [-strokeWidth, strokeWidth], [strokeWidth, -strokeWidth]
+        ];
+        
+        offsets.forEach(([offsetX, offsetY]) => {
+          ctx.fillText(line, xPos + offsetX, yPos + offsetY, maxWidth);
+        });
+      }
+      
+      // Draw main text on top
+      ctx.fillStyle = element.data.color || '#000000';
+      ctx.fillText(line, xPos, yPos, maxWidth);
     });
   } catch (error) {
     console.error('Error drawing text element:', error);

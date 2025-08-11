@@ -24,6 +24,9 @@ class FontManager {
   
   initializeFontMap() {
     // Map frontend font families to Google Fonts API names
+    // Add Arial as a special case - it's a system font, not a Google Font
+    this.fontMap.set('Arial, sans-serif', 'Arial');
+    this.fontMap.set('Arial', 'Arial');
     this.fontMap.set('Montserrat, sans-serif', 'Montserrat');
     this.fontMap.set('Playfair Display, serif', 'Playfair Display');
     this.fontMap.set('Merriweather, serif', 'Merriweather');
@@ -37,7 +40,7 @@ class FontManager {
     this.fontMap.set('Source Sans Pro, sans-serif', 'Source Sans Pro');
     this.fontMap.set('Bebas Neue, sans-serif', 'Bebas Neue');
     this.fontMap.set('Oswald, sans-serif', 'Oswald');
-    this.fontMap.set('Dancing Script, cursive', 'Dancing Script');
+    this.fontMap.set('Dancing Script, cursive', 'Dancing Script');  
     this.fontMap.set('Pacifico, cursive', 'Pacifico');
     this.fontMap.set('Great Vibes, cursive', 'Great Vibes');
     this.fontMap.set('Satisfy, cursive', 'Satisfy');
@@ -120,6 +123,12 @@ class FontManager {
         return this.getFallbackFont(fontFamily);
       }
       
+      // Handle Arial as a system font
+      if (googleFontName === 'Arial') {
+        console.log('Using system Arial font');
+        return 'Arial';
+      }
+      
       const fontKey = `${googleFontName}-registered`;
       if (this.registeredFonts.has(fontKey)) {
         return googleFontName;
@@ -173,8 +182,15 @@ class FontManager {
       // Try to register and use the actual Google Font
       const registeredFont = await this.registerFont(fontFamily);
       
-      // If registration was successful, return the registered font name
-      if (registeredFont && !registeredFont.includes('Arial') && !registeredFont.includes('Times') && !registeredFont.includes('Courier') && !registeredFont.includes('Comic')) {
+      // Handle Arial as a special case - it's a system font
+      if (registeredFont === 'Arial') {
+        console.log(`Using system font fallback: Arial, sans-serif`);
+        console.log(`=== FONT DEBUG END ===\n`);
+        return 'Arial, sans-serif';
+      }
+      
+      // If registration was successful for Google Fonts, return the registered font name
+      if (registeredFont && !registeredFont.includes('Times') && !registeredFont.includes('Courier') && !registeredFont.includes('Comic')) {
         return registeredFont;
       }
       
