@@ -156,20 +156,8 @@ class SchedulerService {
         const templateId = templateIds[i];
         const templateName = templateNames[i];
         
-        // Get variables for this template
-        const variables = await getAllQuery(`
-          SELECT variable_name
-          FROM canvas_variables
-          WHERE template_id = $1
-          ORDER BY variable_name
-        `, [templateId]);
-        
-        // Build backend render URL with variables
-         let templateUrl = `${process.env.BASE_URL}/api/canvas/render/${templateId}`;
-         if (variables.length > 0) {
-           const variableParams = variables.map(v => `${v.variable_name}=REPLACE_ME`).join('&');
-           templateUrl += `?${variableParams}`;
-         }
+        // Build backend render URL without variables
+        const templateUrl = `${process.env.BASE_URL}/api/canvas/render/${templateId}`;
         
         templates.push({
           template_id: templateId,

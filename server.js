@@ -75,7 +75,7 @@ app.post('/api/upload-image', upload.single('image'), (req, res) => {
     
     res.json({ 
       success: true, 
-      imageUrl,
+      url: imageUrl,
       filename: req.file.filename
     });
   } catch (error) {
