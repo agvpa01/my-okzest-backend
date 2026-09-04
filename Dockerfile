@@ -1,7 +1,8 @@
-FROM node:18-bullseye
+FROM node:24-bookworm-slim
 
 # Install system dependencies for canvas and fonts
-RUN apt-get update && apt-get install -y \
+RUN apt-get -o Acquire::Retries=3 update \
+    && apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
     build-essential \
     libcairo2-dev \
     libpango1.0-dev \
@@ -9,13 +10,8 @@ RUN apt-get update && apt-get install -y \
     libgif-dev \
     librsvg2-dev \
     python3 \
-    python3-pip \
-    python3-setuptools \
     fonts-dejavu-core \
     fonts-liberation \
-    fonts-open-sans \
-    curl \
-    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
