@@ -37,6 +37,14 @@ export const db = new Pool({
   application_name: 'dynamic-canvas-backend'
 });
 
+// PostgreSQL can report errors on idle clients outside an active query. Pool
+// emits those errors as events; without a listener Node.js treats the event as
+// unhandled and terminates the process while dumping the full client object.
+db.on('error', (error) => {
+  const errorDetails = [error.code, error.message].filter(Boolean).join(': ');
+  console.error(`❌ Unexpected PostgreSQL pool error${errorDetails ? `: ${errorDetails}` : ''}`);
+});
+
 // Test database connection with retry logic
 const testConnection = async (retries = 3, delay = 5000) => {
   for (let i = 0; i < retries; i++) {
